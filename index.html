@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Roulette</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #12351f; color: white; margin: 0; padding: 10px; }
+    body { font-family: Arial, sans-serif; text-align: center; background-color: #0b3d22; color: white; min-height: 100vh; margin: 0; padding: 10px; }
     h1 { margin: 15px 0 5px; }
     #argent { font-size: 26px; margin: 10px; color: #f6e05e; }
     #conteneur { position: relative; width: 320px; max-width: 90vw; margin: 10px auto; }
     #roue { width: 100%; height: auto; display: block; }
-    #fleche { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #f6e05e; }
     #resultat { font-size: 20px; min-height: 26px; }
     #message { min-height: 28px; font-size: 20px; margin: 10px; }
     .mise { margin: 15px; font-size: 18px; }
@@ -19,20 +18,72 @@
     .rouge { background: #e53e3e; } .noir { background: #1a1a1a; } .vert { background: #2f855a; } .gris { background: #4a5568; }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     #reset { display: none; margin-top: 15px; font-size: 18px; padding: 10px 20px; border: none; border-radius: 8px; background: #f6ad55; cursor: pointer; }
+    #objets button, #prets button { font-size: 16px; padding: 8px 12px; margin: 4px; border: none; border-radius: 8px; background: #805ad5; color: white; cursor: pointer; }
+    #objets button:disabled, #prets button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btnPanneau { margin: 20px 6px 0; font-size: 18px; padding: 10px 22px; border: none; border-radius: 8px; background: #805ad5; color: white; cursor: pointer; }
+    #btnPret { background: #c05621; }
+    #detteTxt { color: #fc8181; }
+    #boutique, #panneauPret, #panneauSucces { display: none; max-width: 600px; margin: 15px auto 10px; padding: 10px; border: 2px solid #f6e05e; border-radius: 10px; }
+    #boutique.ouvert, #panneauPret.ouvert, #panneauSucces.ouvert { display: block; }
+    #boutique h2, #panneauPret h2, #panneauSucces h2 { margin: 10px 0; font-size: 20px; }
+    #prets button { background: #c05621; }
+    body { background-image: radial-gradient(ellipse at center, rgba(40,130,75,0.55) 0%, rgba(6,32,18,0.97) 80%), url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='white' fill-opacity='0.07' font-size='30' font-family='Arial'%3E%3Ctext x='14' y='42'%3E%26%239824;%3C/text%3E%3Ctext x='74' y='42'%3E%26%239829;%3C/text%3E%3Ctext x='14' y='102'%3E%26%239830;%3C/text%3E%3Ctext x='74' y='102'%3E%26%239827;%3C/text%3E%3C/g%3E%3C/svg%3E"); background-attachment: fixed; }
+    h1 { text-shadow: 0 0 8px #f6e05e, 0 0 20px #e53e3e; letter-spacing: 2px; }
+    #conteneur { filter: drop-shadow(0 0 18px rgba(246,224,94,0.55)); }
+    #boutique, #panneauPret, #panneauSucces { background: rgba(0,0,0,0.5); }
+    .emoji { position: fixed; font-size: 28px; pointer-events: none; z-index: 50; }
+    #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 40; }
+    #btnRetirer { position: fixed; top: 10px; right: 10px; z-index: 60; padding: 7px 12px; font-size: 14px; border: none; border-radius: 8px; background: #e53e3e; color: white; cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    #toast { display: none; position: fixed; top: 54px; right: 10px; z-index: 60; width: 250px; padding: 12px; text-align: left; font-size: 16px; background: rgba(0,0,0,0.88); border: 2px solid #f6e05e; border-radius: 10px; cursor: pointer; }
+    h1 { margin-top: 45px; }
+    #jetons { max-width: 440px; margin: 10px auto; }
+    .jeton { width: 58px; height: 58px; margin: 4px; border-radius: 50%; border: 4px dashed rgba(255,255,255,0.85); color: white; font-size: 17px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.5); }
+    .jeton[data-valeur="5"] { background: #e53e3e; }
+    .jeton[data-valeur="10"] { background: #3182ce; }
+    .jeton[data-valeur="50"] { background: #2f855a; }
+    .jeton[data-valeur="100"] { background: #1a1a1a; }
+    .jeton[data-valeur="500"] { background: #805ad5; }
+    .jeton.choisi { outline: 3px solid #f6e05e; transform: translateY(-4px); }
+    #toutMiser { font-size: 17px; font-weight: bold; padding: 14px 16px; margin: 4px; border: none; border-radius: 10px; background: #f6e05e; color: #1a1a1a; cursor: pointer; }
+    #toutMiser.choisi { outline: 3px solid white; }
+    #historique { max-width: 440px; margin: 6px auto 0; }
+    .titreHisto { font-size: 14px; color: #cbd5e0; }
+    .pastille { display: inline-block; width: 30px; height: 30px; line-height: 30px; margin: 3px; border-radius: 50%; border: 2px solid #f6e05e; font-size: 14px; font-weight: bold; color: white; }
+    .pastille.rouge { background: #e53e3e; } .pastille.noir { background: #1a1a1a; } .pastille.vert { background: #2f855a; }
+    .pastille:first-child { transform: scale(1.2); margin-right: 6px; }
+    .histoVide { font-size: 14px; color: #a0aec0; line-height: 36px; }
+    .succes { text-align: left; padding: 6px 8px; margin: 4px 0; border-radius: 6px; background: rgba(255,255,255,0.06); color: #a0aec0; font-size: 15px; }
+    .succes.ok { color: #f6e05e; background: rgba(246,224,94,0.14); }
+    #notif { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 70; padding: 12px 18px; max-width: 90vw; font-size: 17px; background: rgba(0,0,0,0.9); border: 2px solid #f6e05e; border-radius: 10px; }
   </style>
 </head>
 <body>
+  <div id="flash"></div>
+  <button id="btnRetirer">🚪 Retirer</button>
+  <div id="toast"></div>
+  <div id="notif"></div>
   <h1>🎰 Roulette</h1>
-  <div id="argent">Argent : <span id="solde">1000</span> €</div>
+  <div id="argent">Argent : <span id="solde">1000</span> € &nbsp;|&nbsp; <span id="detteTxt">Dette : <span id="dette">0</span> €</span></div>
 
   <div id="conteneur">
     <canvas id="roue" width="400" height="400"></canvas>
-    <div id="fleche"></div>
   </div>
   <div id="resultat"></div>
+  <div id="historique">
+    <div class="titreHisto">Derniers numéros</div>
+    <div id="pastilles"></div>
+  </div>
   <div id="message">Place ta mise et choisis un pari !</div>
 
-  <div class="mise">Mise : <input type="number" id="mise" value="50" min="1"> €</div>
+  <div class="mise">Mise : <span id="miseAffichee">50</span> €</div>
+  <div id="jetons">
+    <button class="jeton" data-valeur="5">5</button>
+    <button class="jeton" data-valeur="10">10</button>
+    <button class="jeton" data-valeur="50">50</button>
+    <button class="jeton" data-valeur="100">100</button>
+    <button class="jeton" data-valeur="500">500</button>
+    <button id="toutMiser">Tout miser</button>
+  </div>
 
   <div class="paris">
     <button class="rouge" data-pari="rouge">Rouge (x2)</button>
@@ -44,7 +95,38 @@
 
   <button id="reset">Recommencer</button>
 
+  <div id="barre">
+    <button id="btnObjets" class="btnPanneau">🎒 Ma fortune</button>
+    <button id="btnPret" class="btnPanneau">🏦 Emprunter</button>
+    <button id="btnSucces" class="btnPanneau">🏆 Succès</button>
+  </div>
+  <div id="boutique">
+    <h2>Ta fortune (clique sur un bien pour le vendre)</h2>
+    <div id="objets"></div>
+  </div>
+  <div id="panneauPret">
+    <h2>Prêts de la maison (20 % d'intérêts)</h2>
+    <div id="prets"></div>
+  </div>
+  <div id="panneauSucces">
+    <h2>Succès</h2>
+    <div id="succes"></div>
+  </div>
+
   <script>
+    const MESSAGES_FAILLITE = [
+      "Tu n'as plus d'argent ! Tu es en dette !",
+      "Tu as vendu ta maison pour parier plus... et tu as tout reperdu.",
+      "La banque vient d'appeler : elle veut te parler.",
+      "Tu as mis ta voiture en gage, et la roue l'a gardée.",
+      "Même ton chat a quitté la maison.",
+      "Tu dois maintenant de l'argent à tout le monde.",
+      "Ta carte bancaire a pris feu.",
+      "Tu dors sous un pont... avec ton dernier jeton.",
+      "Les huissiers sont à ta porte.",
+      "Tu as vendu ton canapé, ta télé et ton frigo. Perdu quand même."
+    ];
+
     const ROUGES = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
     // Ordre réel des numéros sur une roue de roulette européenne
     const ORDRE = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -56,34 +138,475 @@
     const message = document.getElementById("message");
     const resultatEl = document.getElementById("resultat");
     const soldeEl = document.getElementById("solde");
-    const miseEl = document.getElementById("mise");
     const boutons = document.querySelectorAll(".paris button");
     const reset = document.getElementById("reset");
     let solde = 1000;
-    let rot = 0; // rotation actuelle de la roue (radians)
+
+    // Objets que le joueur peut vendre pour récupérer de l'argent
+    const OBJETS = [
+      { id: "velo",     nom: "🚲 Vélo",             prix: 150 },
+      { id: "canape",   nom: "🛋️ Canapé",           prix: 200 },
+      { id: "console",  nom: "🎮 Console de jeux",  prix: 250 },
+      { id: "telephone",nom: "📱 Téléphone",        prix: 300 },
+      { id: "montre",   nom: "⌚ Montre de luxe",   prix: 350 },
+      { id: "tv",       nom: "📺 Télévision",       prix: 400 },
+      { id: "ordi",     nom: "💻 Ordinateur",       prix: 600 },
+      { id: "bijoux",   nom: "💍 Bijoux",           prix: 900 },
+      { id: "voiture",  nom: "🚗 Voiture",          prix: 3000 },
+      { id: "maison",   nom: "🏠 Maison",           prix: 8000 }
+    ];
+    let vendus = [];
+    let enCours = false; // true pendant que la roue tourne
+
+    const objetsEl = document.getElementById("objets");
+    const boutiqueEl = document.getElementById("boutique");
+    const btnObjets = document.getElementById("btnObjets");
+
+    function objetsRestants() {
+      return OBJETS.filter(o => !vendus.includes(o.id)).length;
+    }
+
+    function afficherObjets() {
+      objetsEl.innerHTML = "";
+      const possedes = OBJETS.filter(o => !vendus.includes(o.id));
+      btnObjets.textContent = "🎒 Ma fortune (" + possedes.length + ")";
+      if (possedes.length === 0) {
+        const p = document.createElement("p");
+        p.textContent = "Tu n'as plus rien dans ta fortune.";
+        objetsEl.appendChild(p);
+        return;
+      }
+      possedes.forEach(o => {
+        const b = document.createElement("button");
+        b.textContent = o.nom + " : vendre " + o.prix + " €";
+        b.addEventListener("click", () => vendre(o.id));
+        objetsEl.appendChild(b);
+      });
+    }
+
+
+    function vendre(id) {
+      if (enCours) return; // pas pendant que la roue tourne
+      const objet = OBJETS.find(o => o.id === id);
+      if (!objet || vendus.includes(id)) return;
+
+      vendus.push(id);
+      solde += objet.prix;
+      soldeEl.textContent = solde;
+      debloquer("premiere_vente");
+      if (id === "maison") debloquer("maison_vendue");
+      verifierSucces();
+      message.textContent = "Tu as vendu : " + objet.nom + " pour " + objet.prix + " €";
+      afficherObjets();
+      reset.style.display = "none";
+      if (estGameOver()) gameOver();
+      else bloquer(false); // le joueur peut de nouveau parier
+    }
+
+    // Prêts de la maison : tu reçois X, mais tu devras rendre X + 20 %
+    const PRETS = [200, 500, 1000, 2000];
+    const TAUX = 0.2;
+    const PLAFOND_DETTE = 10000; // la maison ne te prête plus au-delà de cette dette
+    let dette = 0;
+
+    const detteEl = document.getElementById("dette");
+    const pretsEl = document.getElementById("prets");
+    const pretPanneau = document.getElementById("panneauPret");
+    const btnPret = document.getElementById("btnPret");
+
+    function aRendre(montant) {
+      return Math.round(montant * (1 + TAUX));
+    }
+
+    function peutEmprunter() {
+      return PRETS.some(m => dette + aRendre(m) <= PLAFOND_DETTE);
+    }
+
+    function afficherPrets() {
+      detteEl.textContent = dette;
+      pretsEl.innerHTML = "";
+      PRETS.forEach(m => {
+        const b = document.createElement("button");
+        b.textContent = "Emprunter " + m + " € (tu devras " + aRendre(m) + " €)";
+        b.disabled = dette + aRendre(m) > PLAFOND_DETTE;
+        b.addEventListener("click", () => emprunter(m));
+        pretsEl.appendChild(b);
+      });
+      if (dette > 0) {
+        const r = document.createElement("button");
+        r.textContent = "Rembourser (" + Math.min(dette, solde) + " €)";
+        r.disabled = solde <= 0;
+        r.addEventListener("click", rembourser);
+        pretsEl.appendChild(r);
+      }
+    }
+
+    function emprunter(montant) {
+      if (enCours) return; // pas pendant que la roue tourne
+      if (dette + aRendre(montant) > PLAFOND_DETTE) return;
+      dette += aRendre(montant);
+      solde += montant;
+      soldeEl.textContent = solde;
+      debloquer("client_banque");
+      verifierSucces();
+      message.textContent = "La maison te prête " + montant + " €. Tu devras lui rendre " + aRendre(montant) + " €.";
+      afficherPrets();
+      reset.style.display = "none";
+      if (estGameOver()) gameOver();
+      else bloquer(false);
+    }
+
+    function rembourser() {
+      if (enCours) return;
+      const paye = Math.min(dette, solde);
+      if (paye <= 0) return;
+      dette -= paye;
+      solde -= paye;
+      soldeEl.textContent = solde;
+      if (dette === 0) debloquer("dette_payee");
+      majJetons();
+      message.textContent = "Tu as remboursé " + paye + " € à la maison.";
+      afficherPrets();
+      if (estGameOver()) gameOver();
+      else if (solde <= 0) { bloquer(true); gererAsec(); }
+    }
+
+    // Un seul panneau ouvert à la fois
+    function ouvrirPanneau(panneau) {
+      [boutiqueEl, pretPanneau, succesPanneau].forEach(p => { if (p !== panneau) p.classList.remove("ouvert"); });
+      panneau.classList.add("ouvert");
+    }
+    function basculer(panneau) {
+      if (panneau.classList.contains("ouvert")) panneau.classList.remove("ouvert");
+      else ouvrirPanneau(panneau);
+    }
+    btnObjets.addEventListener("click", () => basculer(boutiqueEl));
+    btnPret.addEventListener("click", () => basculer(pretPanneau));
+
+    // ---- Règles du game over ----
+    // false : game over seulement s'il ne reste plus aucun bien à vendre
+    // true  : game over dès que la dette dépasse l'argent, même s'il reste des biens
+    const DETTE_FATALE_MEME_AVEC_BIENS = false;
+
+    const MESSAGES_DETTE = [
+      "Ta dette est plus grande que ton argent. La maison saisit tout.",
+      "La maison vient réclamer ce que tu lui dois. Tu ne peux pas payer.",
+      "Les huissiers sont là : ta dette dépasse tout ce que tu possèdes.",
+      "Tu ne pourras jamais rembourser la maison. Elle garde tout.",
+      "La maison a gagné : tu lui dois plus que ce que tu as."
+    ];
+
+    function estGameOver() {
+      const plusRienAVendre = objetsRestants() === 0;
+      if (solde <= 0 && plusRienAVendre) return true; // plus d'argent et plus rien à vendre
+      if (dette > solde && (plusRienAVendre || DETTE_FATALE_MEME_AVEC_BIENS)) return true; // dette trop grande
+      return false;
+    }
+
+    function gameOver() {
+      debloquer("game_over");
+      bloquer(true);
+      boutiqueEl.classList.remove("ouvert");
+      pretPanneau.classList.remove("ouvert");
+      const liste = dette > solde ? MESSAGES_DETTE : MESSAGES_FAILLITE;
+      message.textContent = liste[Math.floor(Math.random() * liste.length)];
+      reset.style.display = "inline-block";
+    }
+
+    // Appelée quand le joueur n'a plus d'argent mais possède encore des biens
+    function gererAsec() {
+      message.textContent = "Tu n'as plus d'argent ! Vends un bien de ta fortune pour continuer à jouer.";
+      ouvrirPanneau(boutiqueEl);
+    }
+
+    // ---- Animations de victoire et de défaite ----
+    const flashEl = document.getElementById("flash");
+    const argentEl = document.getElementById("argent");
+    const conteneurEl = document.getElementById("conteneur");
+
+    function pluie(emojis, n) {
+      for (let i = 0; i < n; i++) {
+        const e = document.createElement("div");
+        e.className = "emoji";
+        e.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        e.style.left = Math.random() * innerWidth + "px";
+        e.style.top = "-40px";
+        document.body.appendChild(e);
+        const dx = (Math.random() - 0.5) * 120;
+        e.animate(
+          [{ transform: "translate(0,0) rotate(0)", opacity: 1 },
+           { transform: "translate(" + dx + "px," + (innerHeight + 80) + "px) rotate(" + (Math.random() * 720) + "deg)", opacity: 0.3 }],
+          { duration: 1500 + Math.random() * 1500, delay: Math.random() * 400, easing: "ease-in", fill: "backwards" }
+        ).onfinish = () => e.remove();
+      }
+    }
+
+    function flash(couleur, force) {
+      flashEl.style.background = couleur;
+      flashEl.animate([{ opacity: 0 }, { opacity: force }, { opacity: 0 }], { duration: 900 });
+    }
+
+    function pulse(el, echelle) {
+      el.animate([{ transform: "scale(1)" }, { transform: "scale(" + echelle + ")" }, { transform: "scale(1)" }],
+                 { duration: 700, easing: "ease-in-out" });
+    }
+
+    function animerGain(gain) {
+      flash("#f6e05e", 0.45);
+      pluie(["🪙", "💰", "✨", "🤑"], Math.min(70, 20 + Math.floor(gain / 20)));
+      pulse(message, 1.3);
+      pulse(argentEl, 1.25);
+      conteneurEl.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 700 });
+    }
+
+    function animerPerte() {
+      flash("#e53e3e", 0.4);
+      pluie(["💸", "😭", "📉"], 15);
+      const secousse = [{ transform: "translateX(0)" }, { transform: "translateX(-12px)" }, { transform: "translateX(12px)" },
+                        { transform: "translateX(-10px)" }, { transform: "translateX(10px)" }, { transform: "translateX(0)" }];
+      conteneurEl.animate(secousse, { duration: 500 });
+      message.animate(secousse, { duration: 500 });
+      argentEl.animate([{ color: "#f6e05e" }, { color: "#fc8181" }, { color: "#f6e05e" }], { duration: 900 });
+    }
+
+    // ---- Bouton "Retirer" : il ne retire rien, il essaie de te retenir ----
+    const MESSAGES_RETRAIT = [
+      // Variations de "99 % des joueurs perdent parce qu'ils abandonnent"
+      "99 % des joueurs perdent parce qu'ils abandonnent juste avant de gagner.",
+      "99 % des gagnants ont gagné au pari suivant. Source : la maison.",
+      "99 % des paris perdus sont ceux qu'on a arrêtés trop tôt.",
+      "99 % des millionnaires de la roulette ont refusé de partir.",
+      "99 % des joueurs qui partent regrettent le pari d'après.",
+      "99 % des victoires arrivent juste après le moment où tu voulais arrêter.",
+      "99 % des perdants avaient décidé de s'arrêter. Les gagnants, eux, ont remis une mise.",
+      "99 % des abandons ont lieu la veille d'une grosse victoire.",
+      "Selon une étude de la maison, 99 % des départs sont des erreurs.",
+      "99 % des joueurs qui retirent leur argent se disent : j'aurais dû rester.",
+      // Autres façons de te retenir
+      "Ne pars pas maintenant : le prochain pari est toujours le bon.",
+      "Tu étais à un pari de la fortune. Dommage de partir maintenant.",
+      "Chaque fois que tu pars, un pari gagnant se perd quelque part.",
+      "Retirer ? Mais la roue commençait à t'aimer.",
+      "Ta chance est sur le point de tourner. Ne la laisse pas filer.",
+      "La maison te remercie de rester. Elle insiste, même.",
+      "Les vrais joueurs ne retirent jamais. Ils misent encore.",
+      "Un dernier pari, juste un. La maison te le promet."
+    ];
+    const btnRetirer = document.getElementById("btnRetirer");
+    const toastEl = document.getElementById("toast");
+    let dernierRetrait = -1;
+    let timerToast;
+
+    btnRetirer.addEventListener("click", () => {
+      retraits++;
+      if (retraits >= 5) debloquer("tu_voulais_partir");
+      let i;
+      do { i = Math.floor(Math.random() * MESSAGES_RETRAIT.length); } while (i === dernierRetrait);
+      dernierRetrait = i;
+      toastEl.textContent = MESSAGES_RETRAIT[i];
+      toastEl.style.display = "block";
+      toastEl.animate([{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 250 });
+      clearTimeout(timerToast);
+      timerToast = setTimeout(() => { toastEl.style.display = "none"; }, 5000);
+    });
+    toastEl.addEventListener("click", () => { toastEl.style.display = "none"; });
+
+    // ---- Jetons et bouton "Tout miser" ----
+    const VALEURS_JETONS = [5, 10, 50, 100, 500];
+    let miseChoisie = 50;
+    let modeTout = false;       // true = "Tout miser" est sélectionné
+    let parisBloques = false;   // true pendant que la bille tourne ou après un game over
+    let derniereToutMise = false;
+    const miseAfficheeEl = document.getElementById("miseAffichee");
+    const jetonsEls = document.querySelectorAll(".jeton");
+    const toutMiserEl = document.getElementById("toutMiser");
+
+    function majJetons() {
+      // si la mise choisie dépasse l'argent restant, on prend le plus gros jeton possible
+      if (!modeTout && miseChoisie > solde && solde > 0) {
+        const possibles = VALEURS_JETONS.filter(v => v <= solde);
+        if (possibles.length > 0) miseChoisie = possibles[possibles.length - 1];
+        else modeTout = true;
+      }
+      jetonsEls.forEach(j => {
+        const v = parseInt(j.dataset.valeur);
+        j.disabled = parisBloques || v > solde;
+        j.classList.toggle("choisi", !modeTout && v === miseChoisie);
+      });
+      toutMiserEl.disabled = parisBloques || solde <= 0;
+      toutMiserEl.classList.toggle("choisi", modeTout);
+      miseAfficheeEl.textContent = modeTout ? solde + " (tout)" : miseChoisie;
+    }
+
+    jetonsEls.forEach(j => j.addEventListener("click", () => {
+      miseChoisie = parseInt(j.dataset.valeur);
+      modeTout = false;
+      majJetons();
+    }));
+    toutMiserEl.addEventListener("click", () => {
+      modeTout = true;
+      majJetons();
+    });
+
+    // ---- Historique des derniers numéros ----
+    let historique = [];
+    const pastillesEl = document.getElementById("pastilles");
+
+    function afficherHistorique() {
+      pastillesEl.innerHTML = "";
+      if (historique.length === 0) {
+        const vide = document.createElement("span");
+        vide.className = "histoVide";
+        vide.textContent = "Aucun tirage pour l'instant";
+        pastillesEl.appendChild(vide);
+        return;
+      }
+      historique.forEach(n => {
+        const s = document.createElement("span");
+        s.className = "pastille " + couleur(n);
+        s.textContent = n;
+        pastillesEl.appendChild(s);
+      });
+    }
+
+    // ---- Succès ----
+    const SUCCES = [
+      { id: "premier_pari",      nom: "Premier pari",         desc: "Fais ton premier pari." },
+      { id: "premiere_victoire", nom: "Chanceux",             desc: "Gagne un pari." },
+      { id: "en_feu",            nom: "En feu",               desc: "Gagne 3 paris d'affilée." },
+      { id: "malchance",         nom: "Pas de chance",        desc: "Perds 5 paris d'affilée." },
+      { id: "tout_ou_rien",      nom: "Tout ou rien",         desc: "Gagne un pari en misant tout ton argent." },
+      { id: "jackpot",           nom: "Jackpot",              desc: "Gagne en pariant sur le vert (0)." },
+      { id: "survivant",         nom: "Survivant",            desc: "Joue 20 paris." },
+      { id: "riche",             nom: "Gros portefeuille",    desc: "Atteins 5 000 €." },
+      { id: "roi",               nom: "Roi du casino",        desc: "Atteins 10 000 € (la maison ne va pas aimer)." },
+      { id: "a_sec",             nom: "Les poches vides",     desc: "Tombe à 0 €." },
+      { id: "premiere_vente",    nom: "Vendeur",              desc: "Vends un bien de ta fortune." },
+      { id: "maison_vendue",     nom: "Plus de toit",         desc: "Vends ta maison pour parier plus." },
+      { id: "client_banque",     nom: "Client de la maison",  desc: "Emprunte de l'argent à la maison." },
+      { id: "endette",           nom: "Dans le rouge",        desc: "Dépasse 5 000 € de dette." },
+      { id: "dette_payee",       nom: "Bon payeur",           desc: "Rembourse toute ta dette." },
+      { id: "tu_voulais_partir", nom: "Tu voulais partir ?",  desc: "Clique 5 fois sur Retirer." },
+      { id: "game_over",         nom: "Game over",            desc: "Perds la partie." }
+    ];
+
+    let debloques = [];
+    try { debloques = JSON.parse(localStorage.getItem("roulette_succes") || "[]"); } catch (e) { debloques = []; }
+
+    let nbParis = 0, serieGagnante = 0, seriePerdante = 0, retraits = 0;
+    const succesEl = document.getElementById("succes");
+    const succesPanneau = document.getElementById("panneauSucces");
+    const btnSucces = document.getElementById("btnSucces");
+    const notifEl = document.getElementById("notif");
+    const fileNotifs = [];
+    let notifEnCours = false;
+
+    function sauverSucces() {
+      try { localStorage.setItem("roulette_succes", JSON.stringify(debloques)); } catch (e) {}
+    }
+
+    function afficherSucces() {
+      btnSucces.textContent = "🏆 Succès (" + debloques.length + "/" + SUCCES.length + ")";
+      succesEl.innerHTML = "";
+      SUCCES.forEach(s => {
+        const ok = debloques.includes(s.id);
+        const d = document.createElement("div");
+        d.className = "succes" + (ok ? " ok" : "");
+        d.textContent = (ok ? "🏆 " : "🔒 ") + s.nom + " : " + s.desc;
+        succesEl.appendChild(d);
+      });
+    }
+
+    function prochaineNotif() {
+      if (notifEnCours || fileNotifs.length === 0) return;
+      notifEnCours = true;
+      const s = fileNotifs.shift();
+      notifEl.textContent = "🏆 Succès débloqué : " + s.nom;
+      notifEl.style.display = "block";
+      notifEl.animate([{ opacity: 0, transform: "translate(-50%, 20px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 300 });
+      pluie(["🏆", "⭐"], 10);
+      setTimeout(() => { notifEl.style.display = "none"; notifEnCours = false; prochaineNotif(); }, 3000);
+    }
+
+    function debloquer(id) {
+      if (debloques.includes(id)) return;
+      const s = SUCCES.find(x => x.id === id);
+      if (!s) return;
+      debloques.push(id);
+      sauverSucces();
+      afficherSucces();
+      fileNotifs.push(s);
+      prochaineNotif();
+    }
+
+    function verifierSucces() {
+      if (solde >= 5000) debloquer("riche");
+      if (solde >= 10000) debloquer("roi");
+      if (dette > 5000) debloquer("endette");
+    }
+
+    // Appelée à la fin de chaque pari
+    function enregistrerResultat(n, gain) {
+      historique.unshift(n);
+      if (historique.length > 10) historique.pop();
+      afficherHistorique();
+
+      nbParis++;
+      if (gain > 0) { serieGagnante++; seriePerdante = 0; }
+      else { seriePerdante++; serieGagnante = 0; }
+
+      debloquer("premier_pari");
+      if (gain > 0) {
+        debloquer("premiere_victoire");
+        if (derniereToutMise) debloquer("tout_ou_rien");
+        if (n === 0) debloquer("jackpot");
+      }
+      if (serieGagnante >= 3) debloquer("en_feu");
+      if (seriePerdante >= 5) debloquer("malchance");
+      if (nbParis >= 20) debloquer("survivant");
+      if (solde <= 0) debloquer("a_sec");
+      verifierSucces();
+    }
+
+    btnSucces.addEventListener("click", () => basculer(succesPanneau));
 
     function couleur(n) {
       if (n === 0) return "vert";
       return ROUGES.includes(n) ? "rouge" : "noir";
     }
 
+    // La roue reste immobile : c'est la bille qui tourne autour, puis tombe dans une case
+    let billeAngle = -Math.PI / 2; // position de la bille (angle sur le canvas)
+    let billeRayon = null;         // distance de la bille au centre (null = sur la piste)
+
     function dessiner() {
       const cx = canvas.width / 2, cy = canvas.height / 2, R = cx - 8;
+      const Rw = R * 0.8; // rayon de la roue (la piste de la bille est entre Rw et R)
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // bord doré
+      // bord doré + piste en bois où roule la bille
       ctx.beginPath();
       ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
       ctx.fillStyle = "#f6e05e";
       ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = "#3b2a14";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.9, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(246,224,94,0.25)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
+      // cases numérotées
       for (let i = 0; i < N; i++) {
-        const debut = rot + i * SEG - Math.PI / 2;
+        const debut = i * SEG - Math.PI / 2;
         const fin = debut + SEG;
         const c = couleur(ORDRE[i]);
         ctx.beginPath();
         ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, R, debut, fin);
+        ctx.arc(cx, cy, Rw, debut, fin);
         ctx.closePath();
         ctx.fillStyle = c === "rouge" ? "#e53e3e" : c === "noir" ? "#1a1a1a" : "#2f855a";
         ctx.fill();
@@ -91,69 +614,145 @@
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // numéro
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(debut + SEG / 2);
         ctx.fillStyle = "white";
-        ctx.font = "bold 15px Arial";
+        ctx.font = "bold 14px Arial";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.fillText(ORDRE[i], R - 10, 0);
+        ctx.fillText(ORDRE[i], Rw - 34, 0);
         ctx.restore();
       }
 
-      // centre
+      // anneau doré autour de la roue + centre
       ctx.beginPath();
-      ctx.arc(cx, cy, R * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = "#12351f";
+      ctx.arc(cx, cy, Rw, 0, Math.PI * 2);
+      ctx.strokeStyle = "#f6e05e";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, Rw * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = "#0b3d22";
       ctx.fill();
       ctx.strokeStyle = "#f6e05e";
       ctx.lineWidth = 4;
       ctx.stroke();
+
+      // la bille
+      const rb = billeRayon === null ? R * 0.9 : billeRayon;
+      const bx = cx + Math.cos(billeAngle) * rb;
+      const by = cy + Math.sin(billeAngle) * rb;
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
+      ctx.beginPath();
+      ctx.arc(bx, by, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.restore();
     }
 
     function bloquer(etat) {
+      parisBloques = etat;
       boutons.forEach(b => b.disabled = etat);
+      majJetons();
     }
 
-    function lancerRoue(callback) {
-      const gagnant = Math.floor(Math.random() * N); // index dans ORDRE
-      const decalage = (Math.random() - 0.5) * SEG * 0.7;
-      const base = -((gagnant + 0.5) * SEG) + decalage;
+    function lancerRoue(gagnant, callback) {
+      const R = canvas.width / 2 - 8;
+      const rPiste = R * 0.9;          // la bille roule sur la piste
+      const rPoche = R * 0.8 - 13;     // puis tombe dans la case
       const deuxPi = Math.PI * 2;
-      const r0 = rot % deuxPi;
-      const cible = rot - r0 + deuxPi * 6 + (((base % deuxPi) + deuxPi) % deuxPi);
-      const depart = rot;
-      const duree = 4500;
+
+      // angle du centre de la case gagnante (avec un petit décalage au hasard dans la case)
+      const decalage = (Math.random() - 0.5) * SEG * 0.5;
+      const cible = gagnant * SEG + SEG / 2 - Math.PI / 2 + decalage;
+
+      const depart = billeAngle;
+      const r0 = billeRayon === null ? rPiste : billeRayon;
+      const reste = (((cible - depart) % deuxPi) + deuxPi) % deuxPi;
+      const fin = depart + deuxPi * 7 + reste; // 7 tours complets + le trajet jusqu'à la case
+      const duree = 5500;
       const t0 = performance.now();
 
       function frame(t) {
         const p = Math.min((t - t0) / duree, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        rot = depart + (cible - depart) * ease;
+        billeAngle = depart + (fin - depart) * (1 - Math.pow(1 - p, 2)); // la bille ralentit
+
+        let r = rPiste;
+        if (p < 0.08) {
+          r = r0 + (rPiste - r0) * (p / 0.08);                 // la bille est lancée sur la piste
+        } else if (p > 0.7) {
+          const q = (p - 0.7) / 0.3;                           // la bille tombe vers les cases
+          r = rPiste + (rPoche - rPiste) * (q * q * (3 - 2 * q));
+          if (q > 0.5) r += Math.abs(Math.sin((q - 0.5) * 16)) * (1 - q) * 9; // petits rebonds
+        }
+        billeRayon = r;
         dessiner();
-        if (p < 1) requestAnimationFrame(frame);
-        else callback(ORDRE[gagnant]);
+
+        if (p < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          billeAngle = ((fin % deuxPi) + deuxPi) % deuxPi;
+          billeRayon = rPoche;
+          dessiner();
+          callback(ORDRE[gagnant]);
+        }
       }
       requestAnimationFrame(frame);
     }
 
+    let maisonGagne = false;
+
+    function estGagnant(pari, n) {
+      if (pari === "vert") return n === 0;
+      if (pari === "rouge") return couleur(n) === "rouge";
+      if (pari === "noir") return couleur(n) === "noir";
+      if (pari === "pair") return n !== 0 && n % 2 === 0;
+      if (pari === "impair") return n % 2 === 1;
+      return false;
+    }
+
+    // Renvoie l'index du numéro gagnant. Si perteForcee, on évite tout numéro qui ferait gagner le joueur.
+    function tirerNumero(pari, perteForcee) {
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * N);
+      } while (perteForcee && estGagnant(pari, ORDRE[idx]));
+      return idx;
+    }
+
     function jouer(pari) {
-      const mise = parseInt(miseEl.value);
+      const mise = modeTout ? solde : miseChoisie;
       if (isNaN(mise) || mise <= 0) { message.textContent = "Mise invalide."; return; }
       if (mise > solde) { message.textContent = "Tu n'as pas assez d'argent !"; return; }
 
       solde -= mise;
       soldeEl.textContent = solde;
+      enCours = true;
       bloquer(true);
       resultatEl.textContent = "";
-      message.textContent = "La roue tourne...";
+      message.textContent = "La bille tourne...";
 
-      lancerRoue(n => resultat(pari, mise, n));
+      const soldeAvant = solde + mise;
+      derniereToutMise = (mise === soldeAvant);
+      let perteForcee = false;
+      maisonGagne = false;
+      if (soldeAvant > 10000) {
+        perteForcee = true;           // plus de 10000 : la maison gagne toujours
+        maisonGagne = true;
+      } else if (mise === soldeAvant && Math.random() < 0.4) {
+        perteForcee = true;           // tout miser : 40 % de chances en plus de perdre
+      }
+      const gagnant = tirerNumero(pari, perteForcee);
+      lancerRoue(gagnant, n => resultat(pari, mise, n));
     }
 
     function resultat(pari, mise, n) {
+      enCours = false;
       const c = couleur(n);
       const nomCouleur = c === "rouge" ? "rouge 🔴" : c === "noir" ? "noir ⚫" : "vert 🟢";
       resultatEl.textContent = "Numéro " + n + " (" + nomCouleur + ")";
@@ -168,14 +767,19 @@
       if (gain > 0) {
         solde += gain;
         message.textContent = "🎉 Gagné ! Tu gagnes " + gain + " €";
+        animerGain(gain);
       } else {
-        message.textContent = "Perdu... tu perds " + mise + " €";
+        message.textContent = (maisonGagne ? "La maison gagne toujours. " : "") + "Perdu... tu perds " + mise + " €";
+        animerPerte();
       }
       soldeEl.textContent = solde;
+      majJetons();
+      enregistrerResultat(n, gain);
 
-      if (solde <= 0) {
-        message.textContent = "Tu n'as plus d'argent ! 💸";
-        reset.style.display = "inline-block";
+      if (estGameOver()) {
+        gameOver();
+      } else if (solde <= 0) {
+        gererAsec();
       } else {
         bloquer(false);
       }
@@ -185,13 +789,30 @@
 
     reset.addEventListener("click", () => {
       solde = 1000;
+      vendus = [];
+      dette = 0;
+      afficherObjets();
+      afficherPrets();
       soldeEl.textContent = solde;
       message.textContent = "Nouvelle partie !";
       resultatEl.textContent = "";
       reset.style.display = "none";
+      boutiqueEl.classList.remove("ouvert");
+      pretPanneau.classList.remove("ouvert");
+      miseChoisie = 50;
+      modeTout = false;
+      historique = [];
+      serieGagnante = 0;
+      seriePerdante = 0;
+      afficherHistorique();
       bloquer(false);
     });
 
+    afficherObjets();
+    afficherPrets();
+    afficherHistorique();
+    afficherSucces();
+    majJetons();
     dessiner();
   </script>
 </body>
