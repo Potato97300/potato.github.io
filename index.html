@@ -1,1 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roulette</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #12351f; color: white; margin: 0; padding: 10px; }
+    h1 { margin: 15px 0 5px; }
+    #argent { font-size: 26px; margin: 10px; color: #f6e05e; }
+    #roue { width: 140px; height: 140px; line-height: 140px; margin: 15px auto; border-radius: 50%; font-size: 52px; font-weight: bold; background: #444; border: 6px solid #f6e05e; }
+    #message { min-height: 28px; font-size: 20px; margin: 10px; }
+    .mise { margin: 15px; font-size: 18px; }
+    input { font-size: 18px; width: 90px; padding: 6px; border-radius: 6px; border: none; text-align: center; }
+    .paris button { font-size: 18px; padding: 12px 18px; margin: 5px; border: none; border-radius: 8px; color: white; cursor: pointer; }
+    .rouge { background: #e53e3e; } .noir { background: #1a1a1a; } .vert { background: #2f855a; } .gris { background: #4a5568; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #reset { display: none; margin-top: 15px; font-size: 18px; padding: 10px 20px; border: none; border-radius: 8px; background: #f6ad55; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🎰 Roulette</h1>
+  <div id="argent">Argent : <span id="solde">1000</span> €</div>
+  <div id="roue">?</div>
+  <div id="message">Place ta mise et choisis un pari !</div>
 
+  <div class="mise">Mise : <input type="number" id="mise" value="50" min="1"> €</div>
+
+  <div class="paris">
+    <button class="rouge" data-pari="rouge">Rouge (x2)</button>
+    <button class="noir" data-pari="noir">Noir (x2)</button>
+    <button class="gris" data-pari="pair">Pair (x2)</button>
+    <button class="gris" data-pari="impair">Impair (x2)</button>
+    <button class="vert" data-pari="vert">Vert 0 (x14)</button>
+  </div>
+
+  <button id="reset">Recommencer</button>
+
+  <script>
+    const ROUGES = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+    const roue = document.getElementById("roue");
+    const message = document.getElementById("message");
+    const soldeEl = document.getElementById("solde");
+    const miseEl = document.getElementById("mise");
+    const boutons = document.querySelectorAll(".paris button");
+    const reset = document.getElementById("reset");
+    let solde = 1000;
+
+    function couleur(n) {
+      if (n === 0) return "vert";
+      return ROUGES.includes(n) ? "rouge" : "noir";
+    }
+
+    function colorerRoue(n) {
+      const c = couleur(n);
+      roue.style.background = c === "rouge" ? "#e53e3e" : c === "noir" ? "#1a1a1a" : "#2f855a";
+    }
+
+    function bloquer(etat) {
+      boutons.forEach(b => b.disabled = etat);
+    }
+
+    function jouer(pari) {
+      const mise = parseInt(miseEl.value);
+      if (isNaN(mise) || mise <= 0) { message.textContent = "Mise invalide."; return; }
+      if (mise > solde) { message.textContent = "Tu n'as pas assez d'argent !"; return; }
+
+      solde -= mise;
+      soldeEl.textContent = solde;
+      bloquer(true);
+      message.textContent = "La roue tourne...";
+
+      let tours = 0;
+      const anim = setInterval(() => {
+        const n = Math.floor(Math.random() * 37);
+        roue.textContent = n;
+        colorerRoue(n);
+        tours++;
+        if (tours >= 20) {
+          clearInterval(anim);
+          resultat(pari, mise);
+        }
+      }, 100);
+    }
+
+    function resultat(pari, mise) {
+      const n = Math.floor(Math.random() * 37);
+      roue.textContent = n;
+      colorerRoue(n);
+
+      let gain = 0;
+      if (pari === "vert" && n === 0) gain = mise * 14;
+      else if (pari === "rouge" && couleur(n) === "rouge") gain = mise * 2;
+      else if (pari === "noir" && couleur(n) === "noir") gain = mise * 2;
+      else if (pari === "pair" && n !== 0 && n % 2 === 0) gain = mise * 2;
+      else if (pari === "impair" && n % 2 === 1) gain = mise * 2;
+
+      if (gain > 0) {
+        solde += gain;
+        message.textContent = "🎉 Gagné ! Tu gagnes " + gain + " €";
+      } else {
+        message.textContent = "Perdu... tu perds " + mise + " €";
+      }
+      soldeEl.textContent = solde;
+
+      if (solde <= 0) {
+        message.textContent = "Tu n'as plus d'argent ! 💸";
+        reset.style.display = "inline-block";
+      } else {
+        bloquer(false);
+      }
+    }
+
+    boutons.forEach(b => b.addEventListener("click", () => jouer(b.dataset.pari)));
+
+    reset.addEventListener("click", () => {
+      solde = 1000;
+      soldeEl.textContent = solde;
+      message.textContent = "Nouvelle partie !";
+      roue.textContent = "?";
+      roue.style.background = "#444";
+      reset.style.display = "none";
+      bloquer(false);
+    });
+  </script>
+</body>
+</html>
