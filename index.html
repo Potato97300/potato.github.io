@@ -1,219 +1,198 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Blackjack Patate</title>
-
-<style>
-body {
-  background: #123d29;
-  color: white;
-  font-family: monospace;
-  text-align: center;
-}
-
-h1 { color: gold; }
-
-img {
-  width: 120px;
-  image-rendering: pixelated;
-}
-
-.cards {
-  font-size: 35px;
-  margin: 20px;
-}
-
-button {
-  padding: 12px 25px;
-  margin: 8px;
-  cursor: pointer;
-  background: gold;
-  border: none;
-  font-weight: bold;
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roulette</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #12351f; color: white; margin: 0; padding: 10px; }
+    h1 { margin: 15px 0 5px; }
+    #argent { font-size: 26px; margin: 10px; color: #f6e05e; }
+    #conteneur { position: relative; width: 320px; max-width: 90vw; margin: 10px auto; }
+    #roue { width: 100%; height: auto; display: block; }
+    #fleche { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #f6e05e; }
+    #resultat { font-size: 20px; min-height: 26px; }
+    #message { min-height: 28px; font-size: 20px; margin: 10px; }
+    .mise { margin: 15px; font-size: 18px; }
+    input { font-size: 18px; width: 90px; padding: 6px; border-radius: 6px; border: none; text-align: center; }
+    .paris button { font-size: 18px; padding: 12px 18px; margin: 5px; border: none; border-radius: 8px; color: white; cursor: pointer; }
+    .rouge { background: #e53e3e; } .noir { background: #1a1a1a; } .vert { background: #2f855a; } .gris { background: #4a5568; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #reset { display: none; margin-top: 15px; font-size: 18px; padding: 10px 20px; border: none; border-radius: 8px; background: #f6ad55; cursor: pointer; }
+  </style>
 </head>
-
 <body>
+  <h1>🎰 Roulette</h1>
+  <div id="argent">Argent : <span id="solde">1000</span> €</div>
 
-<h1>♠ BLACKJACK ♠</h1>
+  <div id="conteneur">
+    <canvas id="roue" width="400" height="400"></canvas>
+    <div id="fleche"></div>
+  </div>
+  <div id="resultat"></div>
+  <div id="message">Place ta mise et choisis un pari !</div>
 
-<h2>💰 Argent : <span id="money">1000</span> $</h2>
+  <div class="mise">Mise : <input type="number" id="mise" value="50" min="1"> €</div>
 
-<h2>Dealer 🥔</h2>
+  <div class="paris">
+    <button class="rouge" data-pari="rouge">Rouge (x2)</button>
+    <button class="noir" data-pari="noir">Noir (x2)</button>
+    <button class="gris" data-pari="pair">Pair (x2)</button>
+    <button class="gris" data-pari="impair">Impair (x2)</button>
+    <button class="vert" data-pari="vert">Vert 0 (x14)</button>
+  </div>
 
-<!-- Remplace potato.png par le nom de ton image -->
-<img src="potato.png" alt="Dealer patate">
+  <button id="reset">Recommencer</button>
 
-<div class="cards" id="dealer"></div>
-<p>Score dealer : <span id="dealerScore">?</span></p>
+  <script>
+    const ROUGES = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+    // Ordre réel des numéros sur une roue de roulette européenne
+    const ORDRE = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+    const N = ORDRE.length;
+    const SEG = (Math.PI * 2) / N;
 
-<hr>
+    const canvas = document.getElementById("roue");
+    const ctx = canvas.getContext("2d");
+    const message = document.getElementById("message");
+    const resultatEl = document.getElementById("resultat");
+    const soldeEl = document.getElementById("solde");
+    const miseEl = document.getElementById("mise");
+    const boutons = document.querySelectorAll(".paris button");
+    const reset = document.getElementById("reset");
+    let solde = 1000;
+    let rot = 0; // rotation actuelle de la roue (radians)
 
-<h2>Joueur</h2>
-
-<div class="cards" id="player"></div>
-<p>Ton score : <span id="playerScore">0</span></p>
-
-<h3>Mise : <span id="bet">50</span> $</h3>
-
-<button onclick="changeBet(10)">+10 $</button>
-<button onclick="changeBet(50)">+50 $</button>
-
-<br>
-
-<button onclick="hit()">PIOCHER</button>
-<button onclick="stand()">RESTER</button>
-<button onclick="newGame()">NOUVELLE PARTIE</button>
-
-<h2 id="result">Bonne chance !</h2>
-
-<script>
-let money = 1000;
-let bet = 50;
-let player = [];
-let dealer = [];
-let playing = false;
-
-function createDeck() {
-  let deck = [];
-
-  for (let suit of ["♠", "♥", "♦", "♣"]) {
-    for (let rank of ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]) {
-      deck.push({rank, suit});
+    function couleur(n) {
+      if (n === 0) return "vert";
+      return ROUGES.includes(n) ? "rouge" : "noir";
     }
-  }
 
-  return deck.sort(() => Math.random() - 0.5);
-}
+    function dessiner() {
+      const cx = canvas.width / 2, cy = canvas.height / 2, R = cx - 8;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-let deck = [];
+      // bord doré
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#f6e05e";
+      ctx.fill();
 
-function draw() {
-  return deck.pop();
-}
+      for (let i = 0; i < N; i++) {
+        const debut = rot + i * SEG - Math.PI / 2;
+        const fin = debut + SEG;
+        const c = couleur(ORDRE[i]);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, R, debut, fin);
+        ctx.closePath();
+        ctx.fillStyle = c === "rouge" ? "#e53e3e" : c === "noir" ? "#1a1a1a" : "#2f855a";
+        ctx.fill();
+        ctx.strokeStyle = "#f6e05e";
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-function score(cards) {
-  let total = 0;
-  let aces = 0;
+        // numéro
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(debut + SEG / 2);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 15px Arial";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ORDRE[i], R - 10, 0);
+        ctx.restore();
+      }
 
-  for (let card of cards) {
-    if (card.rank === "A") {
-      total += 11;
-      aces++;
-    } else if (["K","Q","J"].includes(card.rank)) {
-      total += 10;
-    } else {
-      total += Number(card.rank);
+      // centre
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = "#12351f";
+      ctx.fill();
+      ctx.strokeStyle = "#f6e05e";
+      ctx.lineWidth = 4;
+      ctx.stroke();
     }
-  }
 
-  while (total > 21 && aces > 0) {
-    total -= 10;
-    aces--;
-  }
+    function bloquer(etat) {
+      boutons.forEach(b => b.disabled = etat);
+    }
 
-  return total;
-}
+    function lancerRoue(callback) {
+      const gagnant = Math.floor(Math.random() * N); // index dans ORDRE
+      const decalage = (Math.random() - 0.5) * SEG * 0.7;
+      const base = -((gagnant + 0.5) * SEG) + decalage;
+      const deuxPi = Math.PI * 2;
+      const r0 = rot % deuxPi;
+      const cible = rot - r0 + deuxPi * 6 + (((base % deuxPi) + deuxPi) % deuxPi);
+      const depart = rot;
+      const duree = 4500;
+      const t0 = performance.now();
 
-function display() {
-  document.getElementById("player").textContent =
-    player.map(c => c.rank + c.suit).join(" ");
+      function frame(t) {
+        const p = Math.min((t - t0) / duree, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        rot = depart + (cible - depart) * ease;
+        dessiner();
+        if (p < 1) requestAnimationFrame(frame);
+        else callback(ORDRE[gagnant]);
+      }
+      requestAnimationFrame(frame);
+    }
 
-  document.getElementById("dealer").textContent =
-    playing
-      ? "🂠 " + dealer.slice(1).map(c => c.rank + c.suit).join(" ")
-      : dealer.map(c => c.rank + c.suit).join(" ");
+    function jouer(pari) {
+      const mise = parseInt(miseEl.value);
+      if (isNaN(mise) || mise <= 0) { message.textContent = "Mise invalide."; return; }
+      if (mise > solde) { message.textContent = "Tu n'as pas assez d'argent !"; return; }
 
-  document.getElementById("playerScore").textContent = score(player);
+      solde -= mise;
+      soldeEl.textContent = solde;
+      bloquer(true);
+      resultatEl.textContent = "";
+      message.textContent = "La roue tourne...";
 
-  document.getElementById("dealerScore").textContent =
-    playing ? "?" : score(dealer);
+      lancerRoue(n => resultat(pari, mise, n));
+    }
 
-  document.getElementById("money").textContent = money;
-  document.getElementById("bet").textContent = bet;
-}
+    function resultat(pari, mise, n) {
+      const c = couleur(n);
+      const nomCouleur = c === "rouge" ? "rouge 🔴" : c === "noir" ? "noir ⚫" : "vert 🟢";
+      resultatEl.textContent = "Numéro " + n + " (" + nomCouleur + ")";
 
-function changeBet(amount) {
-  if (playing) return;
+      let gain = 0;
+      if (pari === "vert" && n === 0) gain = mise * 14;
+      else if (pari === "rouge" && c === "rouge") gain = mise * 2;
+      else if (pari === "noir" && c === "noir") gain = mise * 2;
+      else if (pari === "pair" && n !== 0 && n % 2 === 0) gain = mise * 2;
+      else if (pari === "impair" && n % 2 === 1) gain = mise * 2;
 
-  bet = Math.min(bet + amount, money);
-  display();
-}
+      if (gain > 0) {
+        solde += gain;
+        message.textContent = "🎉 Gagné ! Tu gagnes " + gain + " €";
+      } else {
+        message.textContent = "Perdu... tu perds " + mise + " €";
+      }
+      soldeEl.textContent = solde;
 
-function newGame() {
-  if (playing || bet <= 0 || bet > money) return;
+      if (solde <= 0) {
+        message.textContent = "Tu n'as plus d'argent ! 💸";
+        reset.style.display = "inline-block";
+      } else {
+        bloquer(false);
+      }
+    }
 
-  deck = createDeck();
-  player = [draw(), draw()];
-  dealer = [draw(), draw()];
+    boutons.forEach(b => b.addEventListener("click", () => jouer(b.dataset.pari)));
 
-  money -= bet;
-  playing = true;
+    reset.addEventListener("click", () => {
+      solde = 1000;
+      soldeEl.textContent = solde;
+      message.textContent = "Nouvelle partie !";
+      resultatEl.textContent = "";
+      reset.style.display = "none";
+      bloquer(false);
+    });
 
-  document.getElementById("result").textContent = "À toi de jouer !";
-
-  display();
-
-  if (score(player) === 21) {
-    stand();
-  }
-}
-
-function hit() {
-  if (!playing) return;
-
-  player.push(draw());
-
-  if (score(player) >= 21) {
-    stand();
-  }
-
-  display();
-
-  if (score(player) > 21) {
-    finish();
-  }
-}
-
-function stand() {
-  if (!playing) return;
-
-  while (score(dealer) < 17) {
-    dealer.push(draw());
-  }
-
-  finish();
-}
-
-function finish() {
-  if (!playing) return;
-
-  playing = false;
-
-  let p = score(player);
-  let d = score(dealer);
-
-  if (p > 21) {
-    document.getElementById("result").textContent = "PERDU ! 💀";
-  } else if (d > 21 || p > d) {
-    money += bet * (p === 21 && player.length === 2 ? 2.5 : 2);
-    document.getElementById("result").textContent = "GAGNÉ ! 🏆";
-  } else if (p === d) {
-    money += bet;
-    document.getElementById("result").textContent = "ÉGALITÉ !";
-  } else {
-    document.getElementById("result").textContent = "PERDU ! 💀";
-  }
-
-  display();
-}
-
-display();
-</script>
-
+    dessiner();
+  </script>
 </body>
 </html>
